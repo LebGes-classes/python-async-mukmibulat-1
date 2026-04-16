@@ -1,9 +1,10 @@
-import pandas as pd
-from datetime import datetime
-from typing import Optional, Tuple, Union, List
 import asyncio
-import time
 import os
+import time
+from datetime import datetime
+from typing import List, Optional, Tuple, Union
+
+import pandas as pd
 
 
 async def load_data(path: str) -> pd.DataFrame:
@@ -14,7 +15,7 @@ async def load_data(path: str) -> pd.DataFrame:
         path: Путь к Excel файлу
 
     Returns:
-        DataFrame с очищенными названиями колонок (удалены пробелы, приведены к нижнему регистру)
+        DataFrame с очищенными названиями колонок, а также удалены пробелы и приведены к нижнему регистру
     """
 
     df = await asyncio.to_thread(pd.read_excel, path, engine='openpyxl')
@@ -66,7 +67,7 @@ def parse_date(value: Union[str, datetime, float]) -> Optional[datetime]:
     for fmt in formats:
         try:
             return datetime.strptime(value, fmt)
-        except:
+        except (ValueError, TypeError):
             pass
 
     return None
@@ -124,10 +125,7 @@ def normalize_status(status: Union[str, float]) -> str:
         "error": "faulty"
     }
 
-    if status in mapping:
-        return mapping[status]
-
-    return status
+    return mapping.get(status, status)
 
 
 def normalize_status_column(df: pd.DataFrame) -> pd.DataFrame:
@@ -364,7 +362,10 @@ async def async_main(files: List[str], output_folder: str) -> None:
 
 if __name__ == "__main__":
     file_list = [f"medical_diagnostic_devices_{i}.xlsx" for i in range(1, 11)]
-    existing_files = [f for f in file_list if os.path.exists(f) and os.path.getsize(f) > 0]
+    existing_files = [
+        f for f in file_list
+        if os.path.exists(f) and os.path.getsize(f) > 0
+    ]
 
     if existing_files:
         sync_main(existing_files, "results_sync")
